@@ -51,6 +51,20 @@ public class MemoryGame extends JApplet {
 			cards[i] = card1;
 			cards[i + 1] = card2;
 		}
+		
+		// code Jesse added to shuffle the cards
+                ArrayList<Card> cardA = new ArrayList<Card>();
+                for(int i = 0; i < cards.length; i++)
+                {
+	                cardA.add(cards[i]);
+                }
+                Collections.shuffle(cardA);
+                for(int i = 0; i < cardA.size(); i++)
+                {
+                	cards[i] = cardA.get(i);
+                }
+                //end of code Jesse added
+
 
 		// TODO: Shuffle the card array
 
