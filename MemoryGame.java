@@ -1,5 +1,7 @@
 import javax.swing.*;
 import java.awt.*;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 
 public class MemoryGame extends JApplet {
@@ -31,7 +33,7 @@ public class MemoryGame extends JApplet {
 		this.setLayout(gridLayout);
 
 		// Array to temporarily hold the cards.
-		Card cards[] = new Card[N_CARDS];
+		ArrayList<Card> cards = new ArrayList<Card>(N_CARDS);
 
 		// Create the cards and put them in the card array
 		for (int i = 0; i < N_CARDS; i += 2) {
@@ -48,29 +50,17 @@ public class MemoryGame extends JApplet {
 			card2.addClickListener(cardClickListener);
 
 			// Place the cards in the card array
-			cards[i] = card1;
-			cards[i + 1] = card2;
+			cards.add(card1);
+			cards.add(card2);
 		}
 		
 		// code Jesse added to shuffle the cards
-                ArrayList<Card> cardA = new ArrayList<Card>();
-                for(int i = 0; i < cards.length; i++)
-                {
-	                cardA.add(cards[i]);
-                }
-                Collections.shuffle(cardA);
-                for(int i = 0; i < cardA.size(); i++)
-                {
-                	cards[i] = cardA.get(i);
-                }
-                //end of code Jesse added
-
-
-		// TODO: Shuffle the card array
+        Collections.shuffle(cards);
+        // end of code Jesse added
 
 		// Place the shuffled cards in the grid layout
 		for (int i = 0; i < N_CARDS; i++) {
-			this.add(cards[i]);
+			this.add(cards.get(i));
 		}
 	}
 
