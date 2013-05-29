@@ -57,10 +57,18 @@ public class Card extends JComponent {
 		setCardState(CardState.FACE_DOWN);
 
 		this.setBorder(BORDER_DEFAULT);
-
+		
 		this.addMouseListener(new MouseListener() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
+			}
+
+			@Override
+			public void mousePressed(MouseEvent e) {
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
 				/*
 				 * If the mouse clicked while it was over the card, notify all
 				 * of the ClickListeners
@@ -70,14 +78,6 @@ public class Card extends JComponent {
 						listener.cardClicked((Card) e.getComponent());
 					}
 				}
-			}
-
-			@Override
-			public void mousePressed(MouseEvent e) {
-			}
-
-			@Override
-			public void mouseReleased(MouseEvent e) {
 			}
 
 			@Override

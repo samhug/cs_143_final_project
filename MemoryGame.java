@@ -21,17 +21,44 @@ public class MemoryGame extends JApplet {
 
 	CardClickListener cardClickListener = new CardClickListener();
 
+	JPanel cardPanel;
+	JLabel scoreLabel;
+	
+	int score;
+	
 	/**
 	 * Construct the window
 	 */
 	public void init() {
+		
+		scoreLabel = new JLabel();
+		scoreLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+		scoreLabel.setHorizontalTextPosition(JLabel.RIGHT);
+		updateScore(0);
+		
+		cardPanel = new JPanel();
+		
 		// Set the background color.
-		getContentPane().setBackground(BACKGROUND_COLOR);
-
+		cardPanel.setBackground(BACKGROUND_COLOR);
+		
 		// Construct a grid layout for the cards
-		GridLayout gridLayout = new GridLayout(GRID_WIDTH, GRID_HEIGHT);
-		this.setLayout(gridLayout);
+		cardPanel.setLayout(new GridLayout(GRID_WIDTH, GRID_HEIGHT));
+		
+		this.setLayout(new GridBagLayout());
+		GridBagConstraints constraints = new GridBagConstraints();
+		
+		constraints.fill = GridBagConstraints.BOTH;
+		constraints.weightx = 1.0;
+		constraints.gridx = 0;
+		
+		constraints.weighty = 10.0;
+		constraints.gridy = 1;
+		this.add(cardPanel, constraints);
 
+		constraints.weighty = 0.25;
+		constraints.gridy = 0;
+		this.add(scoreLabel, constraints);
+		
 		// Array to temporarily hold the cards.
 		ArrayList<Card> cards = new ArrayList<Card>(N_CARDS);
 
@@ -60,8 +87,17 @@ public class MemoryGame extends JApplet {
 
 		// Place the shuffled cards in the grid layout
 		for (int i = 0; i < N_CARDS; i++) {
-			this.add(cards.get(i));
+			cardPanel.add(cards.get(i));
 		}
+	}
+	
+	public void updateScore(int score) {
+		this.score = score;
+		scoreLabel.setText("Score: " + score);
+	}
+	
+	public void incrementScore() {
+		updateScore(score+1);
 	}
 
 	/**
