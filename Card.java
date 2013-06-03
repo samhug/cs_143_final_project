@@ -1,3 +1,4 @@
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
@@ -121,20 +122,21 @@ public class Card extends JComponent {
 		super.paintComponent(g);
 
 		final Graphics2D g2d = (Graphics2D) g.create();
-		if (cardState == CardState.OUT_OF_PLAY) {
-			g2d.setColor(OUT_COLOR);
-			g2d.fill(cardRect);
-
-			g2d.setColor(CARD_BORDER_COLOR);
-			g2d.draw(cardRect);
-			repaint();
-		}
 		try {
 			final Dimension size = this.getSize();
 			final String symbol = Character.toString(this.symbol);
 
 			// Calculate the size of the card given the size of the cell.
 			cardRect = calculateCardRect(size.getWidth(), size.getHeight());
+			
+			if (cardState == CardState.OUT_OF_PLAY) {
+				g2d.setColor(OUT_COLOR);
+				g2d.fill(cardRect);
+				
+				// Make the overlay transparent
+				g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
+			}
+			
 			
 			if (cardState == CardState.FACE_DOWN) {
 				g2d.setColor(CARD_BACK_COLOR);
@@ -182,9 +184,9 @@ public class Card extends JComponent {
 			setCardState(Card.CardState.FACE_DOWN);
 		}
 	}
+	
 	public void match(){
 		setCardState(Card.CardState.OUT_OF_PLAY);
-		
 	}
 
 	/**

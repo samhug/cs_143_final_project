@@ -8,9 +8,8 @@ import java.util.Collections;
 import java.util.Random;
 
 public class MemoryGame extends JApplet {
-	int countTurns = 0;
 
-	private static final int TIME_DELAY = 2000;
+	private static final int TIME_DELAY = 1000;
 
 	private final int GRID_WIDTH = 4; // The number of cells wide the grid is.
 	private final int GRID_HEIGHT = 4; // The number of cells tall the grid is.
@@ -27,13 +26,16 @@ public class MemoryGame extends JApplet {
 
 	CardClickListener cardClickListener = new CardClickListener();
 
-	Card lastCard;
-	Card currentCard;
+	Card firstCard;
+	Card secondCard;
 
 	JPanel cardPanel;
 	JLabel scoreLabel;
+	
+	GameState gameState = GameState.NO_CARDS_UP;
 
 	int score;
+	int countTurns = 0;
 
 	/**
 	 * Construct the window
@@ -46,7 +48,7 @@ public class MemoryGame extends JApplet {
 		updateScore(0);
 		
 		//set the size of the window
-				setSize(600, 800);
+		setSize(600, 800);
 
 		cardPanel = new JPanel();
 
@@ -124,56 +126,87 @@ public class MemoryGame extends JApplet {
 	private class CardClickListener implements Card.ClickListener {
 		@Override
 		public void cardClicked(Card card) {
-			if (countTurns < 2){
-				countTurns++;
-			}else
-				countTurns = 1;
-			if (countTurns == 2){
+			
+			if (card.getCardState() == Card.CardState.OUT_OF_PLAY) {
+				return;
+			}
+			
+			if (gameState == GameState.TWO_CARDS_UP) {
+				/* Two cards have already been flipped. The player must wait for them to
+				 * flip back over before he may continue the game. */
+			}
+			
+			else if (gameState == GameState.NO_CARDS_UP) {
+				/* No cards have been flipped yet. Flip the card and wait for the
+				 * player to flip another one. */
+				gameState = GameState.ONE_CARD_UP;
+				
+				System.out.println("First card flipped.");
+				
+				firstCard = card;
+				firstCard.flip();
+			}
+			
+			else if (gameState == GameState.ONE_CARD_UP) {
+				/* One card has been flipped so far. Flip the second card and check if they match.
+				 * Then set a timer to either flip them back over, or disable them,
+				 * depending on if the matched. */
+				if (card == firstCard) {
+					return;
+				}
+				
+				gameState = GameState.TWO_CARDS_UP;
+				
+				System.out.println("Second card flipped.");
+				
+				secondCard = card;
+				secondCard.flip();
 				incrementScore();
+				
+				// Check if the two cards match
+				if(firstCard.getSymbol() == secondCard.getSymbol()) {
+					
+					// Timer to delay between card flips
+					Timer timer = new Timer(TIME_DELAY, new ActionListener() {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							firstCard.match();
+							secondCard.match();
+							
+							// Reset the game state
+							gameState = GameState.NO_CARDS_UP;
+						}
+					});
+					timer.setRepeats(false);
+					timer.start();
+
+					System.out.println("matched");
+				}
+				else {
+					
+					// Timer to delay between card flips
+					Timer timer = new Timer(TIME_DELAY, new ActionListener() {
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							firstCard.flip();
+							secondCard.flip();
+							
+							// Reset the game state
+							gameState = GameState.NO_CARDS_UP;
+						}
+					});
+					timer.setRepeats(false);
+					timer.start();
+				}
+				
 			}
-			System.out.println(countTurns);
-		    // to flip first card need a value
-			if ( currentCard == null){
-				lastCard = card;
-			} else{
-				lastCard = currentCard;
-			}
-			currentCard = card;
-//			System.out.println("Card clicked!");
-			System.out.println(card);
-			if( lastCard.getSymbol() == currentCard.getSymbol()){
-				currentCard.flip();
-
-				 // Timer to delay between card flips
-				 new Timer(TIME_DELAY, new ActionListener() {
-
-					@Override
-					public void actionPerformed(ActionEvent arg0) {
-						lastCard.flip();
-						currentCard.flip();
-
-					}}).start();
-				 card.match();
-
-				 System.out.println("matched");
-			}
-			else {
-				currentCard.flip();
-				 // Timer to delay between card flips
-				 new Timer(TIME_DELAY, new ActionListener() {
-
-					@Override
-					public void actionPerformed(ActionEvent arg0) {
-						lastCard.flip();
-						currentCard.flip();
-					}}).start();
-			}
-			System.out.println("Card clicked!");
-
-			// Flip the card
-//			card.flip();
-
 		}
+	}
+	
+	public enum GameState {
+		NO_CARDS_UP, // All the cards are face down, we're waiting for the player to click one.
+		ONE_CARD_UP, // The user has flipped one card, we're waiting for a second to match it with.
+		TWO_CARDS_UP, // Two cards have been flipped, and we're waiting for them to flip back over.
 	}
 }
 
