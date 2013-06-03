@@ -128,7 +128,7 @@ public class Card extends JComponent {
 
 			// Calculate the size of the card given the size of the cell.
 			cardRect = calculateCardRect(size.getWidth(), size.getHeight());
-			
+
 			if (cardState == CardState.OUT_OF_PLAY) {
 				g2d.setColor(OUT_COLOR);
 				g2d.fill(cardRect);
@@ -136,8 +136,8 @@ public class Card extends JComponent {
 				// Make the overlay transparent
 				g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f));
 			}
-			
-			
+
+
 			if (cardState == CardState.FACE_DOWN) {
 				g2d.setColor(CARD_BACK_COLOR);
 				g2d.fill(cardRect);

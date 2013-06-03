@@ -3,6 +3,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
@@ -32,32 +33,18 @@ public class MemoryGame extends JApplet {
 	JPanel cardPanel;
 	JLabel scoreLabel;
 	
-	GameState gameState = GameState.NO_CARDS_UP;
+	GameState gameState;
 
 	int score;
-	int countTurns = 0;
+	int nMatches;
 
 	/**
 	 * Construct the window
 	 */
 	public void init() {
-		
-		scoreLabel = new JLabel();
-		scoreLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
-		scoreLabel.setHorizontalTextPosition(JLabel.RIGHT);
-		updateScore(0);
-		
-		//set the size of the window
+		// Set the size of the window
 		setSize(600, 800);
-
-		cardPanel = new JPanel();
-
-		// Set the background color.
-		cardPanel.setBackground(BACKGROUND_COLOR);
-
-		// Construct a grid layout for the cards
-		cardPanel.setLayout(new GridLayout(GRID_WIDTH, GRID_HEIGHT));
-
+		
 		this.setLayout(new GridBagLayout());
 		GridBagConstraints constraints = new GridBagConstraints();
 
@@ -65,14 +52,53 @@ public class MemoryGame extends JApplet {
 		constraints.weightx = 1.0;
 		constraints.gridx = 0;
 
+		
+		Box menuLayout = Box.createHorizontalBox();
+		
+		JButton newGameButton = new JButton("New Game");
+		newGameButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				newGame();
+				System.out.println("New Game");
+			}
+		});
+		menuLayout.add(newGameButton);
+		
+		scoreLabel = new JLabel();
+		scoreLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+		scoreLabel.setHorizontalTextPosition(JLabel.RIGHT);
+		updateScore(0);
+		menuLayout.add(scoreLabel);
+		
+		constraints.weighty = 0.25;
+		constraints.gridy = 0;
+		this.add(menuLayout, constraints);
+		
+
+		cardPanel = new JPanel();
+
+		// Set the background color.
+		cardPanel.setBackground(BACKGROUND_COLOR);
+
 		constraints.weighty = 10.0;
 		constraints.gridy = 1;
 		this.add(cardPanel, constraints);
 
-		constraints.weighty = 0.25;
-		constraints.gridy = 0;
-		this.add(scoreLabel, constraints);
-
+		// Initialize a new game
+		newGame();
+	}
+	
+	public void newGame() {
+		// Remove any remnants of any previous game
+		cardPanel.removeAll();
+		nMatches = 0;
+		updateScore(0);
+		gameState = GameState.NO_CARDS_UP;
+		
+		// Construct a grid layout for the cards
+		cardPanel.setLayout(new GridLayout(GRID_WIDTH, GRID_HEIGHT));
+		
 		// Array to temporarily hold the cards.
 		ArrayList<Card> cards = new ArrayList<Card>(N_CARDS);
 
@@ -102,6 +128,8 @@ public class MemoryGame extends JApplet {
 		for (int i = 0; i < N_CARDS; i++) {
 			cardPanel.add(cards.get(i));
 		}
+
+		cardPanel.revalidate();
 	}
 
 	public void updateScore(int score) {
@@ -173,14 +201,23 @@ public class MemoryGame extends JApplet {
 							firstCard.match();
 							secondCard.match();
 							
-							// Reset the game state
-							gameState = GameState.NO_CARDS_UP;
+							nMatches++;
+							if (nMatches == N_CARDS/2) {
+								// The game is over
+								gameState = GameState.GAME_OVER;
+								
+								System.out.println("You won!");
+								JOptionPane.showMessageDialog(null, "Awesome Job!!");
+							} else {
+								// Reset the game state
+								gameState = GameState.NO_CARDS_UP;
+							}
 						}
 					});
 					timer.setRepeats(false);
 					timer.start();
 
-					System.out.println("matched");
+					System.out.println("You found a match!");
 				}
 				else {
 					
@@ -207,6 +244,7 @@ public class MemoryGame extends JApplet {
 		NO_CARDS_UP, // All the cards are face down, we're waiting for the player to click one.
 		ONE_CARD_UP, // The user has flipped one card, we're waiting for a second to match it with.
 		TWO_CARDS_UP, // Two cards have been flipped, and we're waiting for them to flip back over.
+		GAME_OVER, // The player found all the matches, and has completed the game.
 	}
 }
 
