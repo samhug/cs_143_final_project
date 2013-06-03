@@ -20,6 +20,7 @@ public class Card extends JComponent {
 	private final Color CARD_FACE_COLOR = Color.white;
 	private final Color CARD_BACK_COLOR = Color.cyan;
 	private final Color SYMBOL_COLOR = Color.red;
+	private final Color OUT_COLOR = Color.black;
 
 	/*
 	 * Creates borders for the card cell. One normal, and one to display when
@@ -57,7 +58,7 @@ public class Card extends JComponent {
 		setCardState(CardState.FACE_DOWN);
 
 		this.setBorder(BORDER_DEFAULT);
-		
+
 		this.addMouseListener(new MouseListener() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -120,13 +121,21 @@ public class Card extends JComponent {
 		super.paintComponent(g);
 
 		final Graphics2D g2d = (Graphics2D) g.create();
+		if (cardState == CardState.OUT_OF_PLAY) {
+			g2d.setColor(OUT_COLOR);
+			g2d.fill(cardRect);
+
+			g2d.setColor(CARD_BORDER_COLOR);
+			g2d.draw(cardRect);
+			repaint();
+		}
 		try {
 			final Dimension size = this.getSize();
 			final String symbol = Character.toString(this.symbol);
 
 			// Calculate the size of the card given the size of the cell.
 			cardRect = calculateCardRect(size.getWidth(), size.getHeight());
-
+			
 			if (cardState == CardState.FACE_DOWN) {
 				g2d.setColor(CARD_BACK_COLOR);
 				g2d.fill(cardRect);
@@ -155,9 +164,11 @@ public class Card extends JComponent {
 
 				g2d.drawString(symbol, 0, 0);
 			}
+			
 		} finally {
 			g2d.dispose();
 		}
+		
 	}
 
 	/**
@@ -170,6 +181,10 @@ public class Card extends JComponent {
 		} else if (getCardState() == Card.CardState.FACE_UP) {
 			setCardState(Card.CardState.FACE_DOWN);
 		}
+	}
+	public void match(){
+		setCardState(Card.CardState.OUT_OF_PLAY);
+		
 	}
 
 	/**
@@ -209,6 +224,10 @@ public class Card extends JComponent {
 		this.cardState = cardState;
 		repaint();
 	}
+	
+	public char getSymbol() {
+		return symbol;
+	}
 
 	/**
 	 * Adds a ClickListener to this Card object.
@@ -230,3 +249,4 @@ public class Card extends JComponent {
 		OUT_OF_PLAY, // The card is out of play, it has already been matched.
 	}
 }
+

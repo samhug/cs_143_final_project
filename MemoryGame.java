@@ -1,10 +1,16 @@
 import javax.swing.*;
+
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
 
 public class MemoryGame extends JApplet {
+	int countTurns = 0;
+
+	private static final int TIME_DELAY = 2000;
 
 	private final int GRID_WIDTH = 4; // The number of cells wide the grid is.
 	private final int GRID_HEIGHT = 4; // The number of cells tall the grid is.
@@ -21,11 +27,14 @@ public class MemoryGame extends JApplet {
 
 	CardClickListener cardClickListener = new CardClickListener();
 
+	Card lastCard;
+	Card currentCard;
+
 	JPanel cardPanel;
 	JLabel scoreLabel;
-	
+
 	int score;
-	
+
 	/**
 	 * Construct the window
 	 */
@@ -36,21 +45,24 @@ public class MemoryGame extends JApplet {
 		scoreLabel.setHorizontalTextPosition(JLabel.RIGHT);
 		updateScore(0);
 		
+		//set the size of the window
+				setSize(600, 800);
+
 		cardPanel = new JPanel();
-		
+
 		// Set the background color.
 		cardPanel.setBackground(BACKGROUND_COLOR);
-		
+
 		// Construct a grid layout for the cards
 		cardPanel.setLayout(new GridLayout(GRID_WIDTH, GRID_HEIGHT));
-		
+
 		this.setLayout(new GridBagLayout());
 		GridBagConstraints constraints = new GridBagConstraints();
-		
+
 		constraints.fill = GridBagConstraints.BOTH;
 		constraints.weightx = 1.0;
 		constraints.gridx = 0;
-		
+
 		constraints.weighty = 10.0;
 		constraints.gridy = 1;
 		this.add(cardPanel, constraints);
@@ -58,7 +70,7 @@ public class MemoryGame extends JApplet {
 		constraints.weighty = 0.25;
 		constraints.gridy = 0;
 		this.add(scoreLabel, constraints);
-		
+
 		// Array to temporarily hold the cards.
 		ArrayList<Card> cards = new ArrayList<Card>(N_CARDS);
 
@@ -80,22 +92,21 @@ public class MemoryGame extends JApplet {
 			cards.add(card1);
 			cards.add(card2);
 		}
-		
-		// code Jesse added to shuffle the cards
+
+		// shuffle the cards
         Collections.shuffle(cards);
-        // end of code Jesse added
 
 		// Place the shuffled cards in the grid layout
 		for (int i = 0; i < N_CARDS; i++) {
 			cardPanel.add(cards.get(i));
 		}
 	}
-	
+
 	public void updateScore(int score) {
 		this.score = score;
 		scoreLabel.setText("Score: " + score);
 	}
-	
+
 	public void incrementScore() {
 		updateScore(score+1);
 	}
@@ -113,11 +124,56 @@ public class MemoryGame extends JApplet {
 	private class CardClickListener implements Card.ClickListener {
 		@Override
 		public void cardClicked(Card card) {
+			if (countTurns < 2){
+				countTurns++;
+			}else
+				countTurns = 1;
+			if (countTurns == 2){
+				incrementScore();
+			}
+			System.out.println(countTurns);
+		    // to flip first card need a value
+			if ( currentCard == null){
+				lastCard = card;
+			} else{
+				lastCard = currentCard;
+			}
+			currentCard = card;
+//			System.out.println("Card clicked!");
+			System.out.println(card);
+			if( lastCard.getSymbol() == currentCard.getSymbol()){
+				currentCard.flip();
 
+				 // Timer to delay between card flips
+				 new Timer(TIME_DELAY, new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent arg0) {
+						lastCard.flip();
+						currentCard.flip();
+
+					}}).start();
+				 card.match();
+
+				 System.out.println("matched");
+			}
+			else {
+				currentCard.flip();
+				 // Timer to delay between card flips
+				 new Timer(TIME_DELAY, new ActionListener() {
+
+					@Override
+					public void actionPerformed(ActionEvent arg0) {
+						lastCard.flip();
+						currentCard.flip();
+					}}).start();
+			}
 			System.out.println("Card clicked!");
 
 			// Flip the card
-			card.flip();
+//			card.flip();
+
 		}
 	}
 }
+
