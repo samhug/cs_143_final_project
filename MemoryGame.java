@@ -3,7 +3,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
@@ -12,28 +11,53 @@ public class MemoryGame extends JApplet {
 
 	private static final int TIME_DELAY = 1000;
 
-	private final int GRID_WIDTH = 4; // The number of cells wide the grid is.
-	private final int GRID_HEIGHT = 4; // The number of cells tall the grid is.
-
+	private class Level {
+		
+		String name;
+		int width;
+		int height;
+		int matchCount;
+		
+		public Level(String name, int width, int height, int matchCount) {
+			this.name = name;
+			this.width = width;
+			this.height = height;
+			this.matchCount = matchCount;
+		}
+		
+		public String toString() {
+			return name;
+		}
+	}
+	
+	private final Level[] LEVELS = {
+			/*  NAME, WIDTH, HEIGHT, MATCH_SIZE */
+			new Level("Level 1", 2, 2, 2),
+			new Level("Level 2", 4, 3, 2),
+			new Level("Level 3", 4, 3, 3),
+		};
+	
+	
 	private final String SYMBOL_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 	// The background color for the playing area
 	private final Color BACKGROUND_COLOR = Color.gray;
 
-	// The total number of cards
-	private final int N_CARDS = GRID_WIDTH * GRID_HEIGHT;
-
 	private final Random rand = new Random();
 
+	// The total number of cards
+	private int nCards;
+	
 	CardClickListener cardClickListener = new CardClickListener();
 
-	Card firstCard;
-	Card secondCard;
+	ArrayList<Card> flippedCards;
 
 	JPanel cardPanel;
 	JLabel scoreLabel;
+	JSpinner levelSpinner;
 	
 	GameState gameState;
+	Level currentLevel;
 
 	int score;
 	int nMatches;
@@ -65,6 +89,10 @@ public class MemoryGame extends JApplet {
 		});
 		menuLayout.add(newGameButton);
 		
+		SpinnerListModel levelModel = new SpinnerListModel(LEVELS);
+		levelSpinner = new JSpinner(levelModel);
+		menuLayout.add(levelSpinner);
+		
 		scoreLabel = new JLabel();
 		scoreLabel.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
 		scoreLabel.setHorizontalTextPosition(JLabel.RIGHT);
@@ -94,38 +122,44 @@ public class MemoryGame extends JApplet {
 		cardPanel.removeAll();
 		nMatches = 0;
 		updateScore(0);
+		flippedCards = new ArrayList<Card>();
 		gameState = GameState.NO_CARDS_UP;
 		
+		currentLevel = (Level)levelSpinner.getValue();
+		nCards = currentLevel.width * currentLevel.height;
+		
+		play(getCodeBase(), "cardShuffle.wav");
+		
 		// Construct a grid layout for the cards
-		cardPanel.setLayout(new GridLayout(GRID_WIDTH, GRID_HEIGHT));
+		cardPanel.setLayout(new GridLayout(currentLevel.width, currentLevel.height));
 		
 		// Array to temporarily hold the cards.
-		ArrayList<Card> cards = new ArrayList<Card>(N_CARDS);
+		ArrayList<Card> cards = new ArrayList<Card>(nCards);
 
 		// Create the cards and put them in the card array
-		for (int i = 0; i < N_CARDS; i += 2) {
+		for (int i = 0; i < nCards; i += currentLevel.matchCount) {
 
 			// Get a random symbol
 			final char symbol = getRandomSymbol();
 
-			// Create two cards with the same symbol
-			final Card card1 = new Card(symbol);
-			final Card card2 = new Card(symbol);
-
-			// Add our click listener to them
-			card1.addClickListener(cardClickListener);
-			card2.addClickListener(cardClickListener);
-
-			// Place the cards in the card array
-			cards.add(card1);
-			cards.add(card2);
+			for (int n=0; n<currentLevel.matchCount; n++) {
+				
+				// Create two cards with the same symbol
+				Card card = new Card(symbol);
+	
+				// Add our click listener to them
+				card.addClickListener(cardClickListener);
+	
+				// Place the cards in the card array
+				cards.add(card);
+			}
 		}
 
 		// shuffle the cards
         Collections.shuffle(cards);
 
 		// Place the shuffled cards in the grid layout
-		for (int i = 0; i < N_CARDS; i++) {
+		for (int i = 0; i < nCards; i++) {
 			cardPanel.add(cards.get(i));
 		}
 
@@ -159,74 +193,90 @@ public class MemoryGame extends JApplet {
 				return;
 			}
 			
-			if (gameState == GameState.TWO_CARDS_UP) {
-				/* Two cards have already been flipped. The player must wait for them to
+			if (gameState == GameState.ENOUGH_CARDS_UP) {
+				/* Enough cards have already been flipped. The player must wait for them to
 				 * flip back over before he may continue the game. */
+				return;
 			}
 			
-			else if (gameState == GameState.NO_CARDS_UP) {
+			play(getCodeBase(), "cardFlipped.wav");
+			
+			if (gameState == GameState.NO_CARDS_UP) {
 				/* No cards have been flipped yet. Flip the card and wait for the
 				 * player to flip another one. */
-				gameState = GameState.ONE_CARD_UP;
+				gameState = GameState.NOT_ENOUGH_CARDS_UP;
 				
 				System.out.println("First card flipped.");
 				
-				firstCard = card;
-				firstCard.flip();
+				flippedCards.add(card);
+				card.flip();
 			}
 			
-			else if (gameState == GameState.ONE_CARD_UP) {
-				/* One card has been flipped so far. Flip the second card and check if they match.
+			else if (gameState == GameState.NOT_ENOUGH_CARDS_UP) {
+				/* One or more cards have been flipped so far. Flip the next card and check if they match.
 				 * Then set a timer to either flip them back over, or disable them,
 				 * depending on if the matched. */
-				if (card == firstCard) {
+				if (flippedCards.contains(card)) {
 					return;
 				}
+		
+				System.out.println("Next card flipped.");
 				
-				gameState = GameState.TWO_CARDS_UP;
+				card.flip();
 				
-				System.out.println("Second card flipped.");
-				
-				secondCard = card;
-				secondCard.flip();
-				incrementScore();
+				flippedCards.add(card);
 				
 				// Check if the two cards match
-				if(firstCard.getSymbol() == secondCard.getSymbol()) {
+				if(card.getSymbol() == flippedCards.get(0).getSymbol()) {
 					
-					// Timer to delay between card flips
-					Timer timer = new Timer(TIME_DELAY, new ActionListener() {
-						@Override
-						public void actionPerformed(ActionEvent e) {
-							firstCard.match();
-							secondCard.match();
-							
-							nMatches++;
-							if (nMatches == N_CARDS/2) {
-								// The game is over
-								gameState = GameState.GAME_OVER;
+					if (flippedCards.size() >= currentLevel.matchCount) {
+						gameState = GameState.ENOUGH_CARDS_UP;
+						
+						play(getCodeBase(), "cool.wav");
+						incrementScore();
+						
+						// Timer to delay between card flips
+						Timer timer = new Timer(TIME_DELAY, new ActionListener() {
+							@Override
+							public void actionPerformed(ActionEvent e) {
 								
-								System.out.println("You won!");
-								JOptionPane.showMessageDialog(null, "Awesome Job!!");
-							} else {
-								// Reset the game state
-								gameState = GameState.NO_CARDS_UP;
+								for(Card card : flippedCards) {
+									card.match();
+								}
+								flippedCards.clear();
+								
+								nMatches++;
+								if (nMatches == nCards/currentLevel.matchCount) {
+									// The game is over
+									gameState = GameState.GAME_OVER;
+									
+									System.out.println("You won!");
+									JOptionPane.showMessageDialog(null, "Awesome Job!!");
+								} else {
+									// Reset the game state
+									gameState = GameState.NO_CARDS_UP;
+								}
 							}
-						}
-					});
-					timer.setRepeats(false);
-					timer.start();
-
-					System.out.println("You found a match!");
+						});
+						timer.setRepeats(false);
+						timer.start();
+						
+						System.out.println("You found a match!");
+					}
 				}
 				else {
+					gameState = GameState.ENOUGH_CARDS_UP;
+					incrementScore();
 					
 					// Timer to delay between card flips
 					Timer timer = new Timer(TIME_DELAY, new ActionListener() {
 						@Override
 						public void actionPerformed(ActionEvent e) {
-							firstCard.flip();
-							secondCard.flip();
+							
+							for(Card card : flippedCards) {
+								card.flip();
+							}
+							flippedCards.clear();
 							
 							// Reset the game state
 							gameState = GameState.NO_CARDS_UP;
@@ -242,8 +292,8 @@ public class MemoryGame extends JApplet {
 	
 	public enum GameState {
 		NO_CARDS_UP, // All the cards are face down, we're waiting for the player to click one.
-		ONE_CARD_UP, // The user has flipped one card, we're waiting for a second to match it with.
-		TWO_CARDS_UP, // Two cards have been flipped, and we're waiting for them to flip back over.
+		NOT_ENOUGH_CARDS_UP, // The user has flipped one or more cards, we're waiting for more to match it with.
+		ENOUGH_CARDS_UP, // Enough cards have been flipped, and we're waiting for them to flip back over.
 		GAME_OVER, // The player found all the matches, and has completed the game.
 	}
 }
