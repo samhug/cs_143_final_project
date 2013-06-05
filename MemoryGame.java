@@ -19,12 +19,14 @@ public class MemoryGame extends JApplet {
 
 	private class Level {
 		
+		String description;
 		String name;
 		int width;
 		int height;
 		int matchCount;
 		
-		public Level(String name, int width, int height, int matchCount) {
+		public Level(String name, String description, int width, int height, int matchCount) {
+			this.description = description;
 			this.name = name;
 			this.width = width;
 			this.height = height;
@@ -32,15 +34,17 @@ public class MemoryGame extends JApplet {
 		}
 		
 		public String toString() {
-			return name;
+			return description+" "+name;
 		}
 	}
 	
 	private final Level[] LEVELS = {
-			/*  NAME, WIDTH, HEIGHT, MATCH_SIZE */
-			new Level("Level 1", 2, 2, 2),
-			new Level("Level 2", 4, 3, 2),
-			new Level("Level 3", 4, 3, 3),
+			/*  NAME, DESCRIPTION, WIDTH, HEIGHT, MATCH_SIZE */
+			new Level("Level 1", "MATCH TWO OF A KIND                       ", 2, 2, 2),
+			new Level("Level 2", "MATCH TWO OF A KIND                       ", 4, 3, 2),
+			new Level("Level 3", "MATCH THREE OF A KIND                     ", 4, 3, 3),
+			new Level("Level 4", "MATCH TWO OF A KIND                       ", 4, 5, 2),
+			new Level("Level 5", "MATCH THREE OF A KIND                     ", 4, 6, 3),
 		};
 	
 	
@@ -181,50 +185,7 @@ public class MemoryGame extends JApplet {
 		updateScore(score+1);
 	}
 	
-	public void submitScore(String playerName, String level, boolean displayHighscores) {
-		String highscores = "";
-		
-		try {
-			String urlParameters = "level="+ URLEncoder.encode(level) +"&name=" + URLEncoder.encode(playerName) + "&score=" + URLEncoder.encode(Integer.toString(score));
-			URL url;
-			if (getCodeBase().getProtocol().startsWith("http")) {
-				url = new URL(getCodeBase(), "highscores");
-			} else {
-				url = new URL("http://memorygam3.appspot.com/highscores");
-			}
-			
-			HttpURLConnection connection = (HttpURLConnection) url.openConnection();           
-			connection.setDoOutput(true);
-			connection.setDoInput(true);
-			connection.setInstanceFollowRedirects(false);
-			connection.setRequestMethod("POST"); 
-			connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded"); 
-			connection.setRequestProperty("charset", "utf-8");
-			connection.setRequestProperty("Content-Length", "" + Integer.toString(urlParameters.getBytes().length));
-			connection.setUseCaches(false);
-			
-			DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
-			writer.writeBytes(urlParameters);
-			writer.flush();
-			
-			String line;
-			BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-			while ((line = reader.readLine()) != null) {
-				highscores += line + "\n";
-			}
-			
-			writer.close();
-			reader.close();
-			connection.disconnect();
-
-		} catch (IOException e) {
-			JOptionPane.showMessageDialog(null, "Error: Unable to submit score.");
-		}
-		
-		if (displayHighscores) {
-			JOptionPane.showMessageDialog(null, highscores);
-		}
-	}
+	
 
 	/**
 	 * Picks a random character from SYMBOL_ALPHABET and returns it.
@@ -283,7 +244,7 @@ public class MemoryGame extends JApplet {
 					if (flippedCards.size() >= currentLevel.matchCount) {
 						gameState = GameState.ENOUGH_CARDS_UP;
 						
-						play(getCodeBase(), "cool.wav");
+						play(getCodeBase(), "cardsMatch.wav");
 						incrementScore();
 						
 						// Timer to delay between card flips
@@ -301,10 +262,11 @@ public class MemoryGame extends JApplet {
 									// The game is over
 									gameState = GameState.GAME_OVER;
 									
+									play(getCodeBase(), "levelComplete.wav");
 									System.out.println("You won!");
 									
 									String playerName = JOptionPane.showInputDialog("Awesome Job!\n Please enter your name for the scoreboard.");
-									submitScore(playerName, currentLevel.name, true);
+									new ScoreDialog(null, true, playerName, currentLevel, score);
 									
 								} else {
 									// Reset the game state
@@ -349,6 +311,101 @@ public class MemoryGame extends JApplet {
 		NOT_ENOUGH_CARDS_UP, // The user has flipped one or more cards, we're waiting for more to match it with.
 		ENOUGH_CARDS_UP, // Enough cards have been flipped, and we're waiting for them to flip back over.
 		GAME_OVER, // The player found all the matches, and has completed the game.
+	}
+	
+	private class ScoreDialog extends JDialog {
+		
+		JButton closeButton;
+		JLabel scoreboardLabel;
+		
+		public ScoreDialog(JFrame owner, boolean modal, final String playerName, final Level level, final int score) {
+			super(owner, "Scoreboard", modal);
+			
+			scoreboardLabel = new JLabel("Please wait while we upload your score...");
+			
+			closeButton = new JButton("Close");
+			closeButton.addActionListener(new ActionListener() {
+                public void actionPerformed(ActionEvent ae){
+                	closeDialog();
+                }
+            });
+			closeButton.setEnabled(false);
+			
+			Box box = Box.createVerticalBox();
+			box.add(scoreboardLabel);
+			box.add(closeButton);
+	
+			add(box);
+			
+			
+			Timer timer = new Timer(100, new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					String scoreboard = submitScore(playerName, level.name, score);
+					scoreboardLabel.setText(scoreboard);
+					closeButton.setEnabled(true);
+					pack();
+				}
+			});
+			timer.setRepeats(false);
+			timer.start();
+			
+			pack();
+			setVisible(true);
+			
+		}
+	
+		public void closeDialog() {
+			setModal(false);
+			dispose();
+		}
+		
+		public String submitScore(String playerName, String levelName, int score) {
+			String highscores = "<html>";
+			
+			System.out.println("Publishing score...");
+			
+			try {
+				String urlParameters = "level="+ URLEncoder.encode(levelName) +"&name=" + URLEncoder.encode(playerName) + "&score=" + URLEncoder.encode(Integer.toString(score));
+				URL url;
+				if (getCodeBase().getProtocol().startsWith("http")) {
+					url = new URL(getCodeBase(), "highscores");
+				} else {
+					url = new URL("http://memorygam3.appspot.com/highscores");
+				}
+				
+				HttpURLConnection connection = (HttpURLConnection) url.openConnection();           
+				connection.setDoOutput(true);
+				connection.setDoInput(true);
+				connection.setInstanceFollowRedirects(false);
+				connection.setRequestMethod("POST"); 
+				connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded"); 
+				connection.setRequestProperty("charset", "utf-8");
+				connection.setRequestProperty("Content-Length", "" + Integer.toString(urlParameters.getBytes().length));
+				connection.setUseCaches(false);
+				
+				DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+				writer.writeBytes(urlParameters);
+				writer.flush();
+				
+				String line;
+				BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+				while ((line = reader.readLine()) != null) {
+					highscores += line + "<br>";
+				}
+				
+				writer.close();
+				reader.close();
+				connection.disconnect();
+	
+			} catch (IOException e) {
+				return "Error: Unable to submit score.";
+			}
+			
+			System.out.println("Score published...");
+			
+			return highscores+"</html>";
+		}
 	}
 }
 
