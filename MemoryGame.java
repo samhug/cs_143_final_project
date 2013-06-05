@@ -3,6 +3,12 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.BufferedReader;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
@@ -174,6 +180,52 @@ public class MemoryGame extends JApplet {
 	public void incrementScore() {
 		updateScore(score+1);
 	}
+	
+	public void submitScore(String playerName, String level, boolean displayHighscores) {
+		String highscores = "";
+		
+		try {
+			String urlParameters = "level="+ URLEncoder.encode(level) +"&name=" + URLEncoder.encode(playerName) + "&score=" + URLEncoder.encode(Integer.toString(score));
+			URL url;
+			
+			if (getCodeBase().getHost() == "memorygam3.appspot.com") {
+				url = new URL(getCodeBase(), "highscores");
+			} else {
+				url = new URL("http://memorygam3.appspot.com/highscores");
+			}
+			
+			HttpURLConnection connection = (HttpURLConnection) url.openConnection();           
+			connection.setDoOutput(true);
+			connection.setDoInput(true);
+			connection.setInstanceFollowRedirects(false);
+			connection.setRequestMethod("POST"); 
+			connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded"); 
+			connection.setRequestProperty("charset", "utf-8");
+			connection.setRequestProperty("Content-Length", "" + Integer.toString(urlParameters.getBytes().length));
+			connection.setUseCaches(false);
+			
+			DataOutputStream writer = new DataOutputStream(connection.getOutputStream());
+			writer.writeBytes(urlParameters);
+			writer.flush();
+			
+			String line;
+			BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+			while ((line = reader.readLine()) != null) {
+				highscores += line + "\n";
+			}
+			
+			writer.close();
+			reader.close();
+			connection.disconnect();
+
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(null, "Error: Unable to submit score.");
+		}
+		
+		if (displayHighscores) {
+			JOptionPane.showMessageDialog(null, highscores);
+		}
+	}
 
 	/**
 	 * Picks a random character from SYMBOL_ALPHABET and returns it.
@@ -252,6 +304,10 @@ public class MemoryGame extends JApplet {
 									
 									System.out.println("You won!");
 									JOptionPane.showMessageDialog(null, "Awesome Job!!");
+									
+									String playerName = JOptionPane.showInputDialog("Please enter your name for the scoreboard");
+									submitScore(playerName, currentLevel.name, true);
+									
 								} else {
 									// Reset the game state
 									gameState = GameState.NO_CARDS_UP;
