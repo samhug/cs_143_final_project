@@ -187,8 +187,7 @@ public class MemoryGame extends JApplet {
 		try {
 			String urlParameters = "level="+ URLEncoder.encode(level) +"&name=" + URLEncoder.encode(playerName) + "&score=" + URLEncoder.encode(Integer.toString(score));
 			URL url;
-			
-			if (getCodeBase().getHost() == "memorygam3.appspot.com") {
+			if (getCodeBase().getProtocol().startsWith("http")) {
 				url = new URL(getCodeBase(), "highscores");
 			} else {
 				url = new URL("http://memorygam3.appspot.com/highscores");
@@ -303,9 +302,8 @@ public class MemoryGame extends JApplet {
 									gameState = GameState.GAME_OVER;
 									
 									System.out.println("You won!");
-									JOptionPane.showMessageDialog(null, "Awesome Job!!");
 									
-									String playerName = JOptionPane.showInputDialog("Please enter your name for the scoreboard");
+									String playerName = JOptionPane.showInputDialog("Awesome Job!\n Please enter your name for the scoreboard.");
 									submitScore(playerName, currentLevel.name, true);
 									
 								} else {
